@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Neon Shores — Bahía Rosa</title>
+<style>
+  :root {
+    --pink: #ff2e88;
+    --cyan: #22d3ee;
+    --gold: #ffd166;
+    --ink: #0b0e1a;
+    --panel: rgba(8, 10, 24, 0.62);
+    --text: #f4f6ff;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0e1a; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--text); }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .hidden { display: none !important; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  #topbar { position: absolute; top: 14px; right: 18px; text-align: right; }
+  #cash { font-size: 30px; font-weight: 800; letter-spacing: 1px; color: #7dff9a; text-shadow: 0 2px 0 rgba(0,0,0,.55), 0 0 14px rgba(60,255,140,.35); font-variant-numeric: tabular-nums; }
+  #clock { font-size: 15px; font-weight: 700; color: var(--text); opacity: .92; text-shadow: 0 1px 0 rgba(0,0,0,.6); margin-bottom: 2px; }
+  #stars { font-size: 24px; letter-spacing: 3px; line-height: 1; margin-top: 2px; }
+  #stars .star { color: rgba(255,255,255,.22); text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+  #stars .star.on { color: var(--gold); text-shadow: 0 0 10px rgba(255,209,102,.85), 0 1px 0 rgba(0,0,0,.5); }
+  #stars.blink .star.on { animation: starblink .5s steps(2) infinite; }
+  @keyframes starblink { 50% { color: rgba(255,209,102,.25); text-shadow: none; } }
+  #weapon { margin-top: 4px; font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--cyan); text-shadow: 0 1px 0 rgba(0,0,0,.6); }
+
+  #objective { position: absolute; top: 14px; left: 18px; max-width: 330px; background: var(--panel); border-left: 4px solid var(--pink); border-radius: 6px; padding: 9px 12px; backdrop-filter: blur(3px); }
+  #objective .obj-title { font-size: 12px; font-weight: 800; letter-spacing: 2px; color: var(--pink); text-transform: uppercase; }
+  #objective .obj-text { font-size: 15px; font-weight: 600; margin-top: 2px; text-shadow: 0 1px 0 rgba(0,0,0,.6); }
+  #objective .obj-sub { font-size: 12.5px; opacity: .85; margin-top: 1px; }
+
+  #banner { position: absolute; top: 15%; left: 0; right: 0; text-align: center; opacity: 0; transition: opacity .3s; }
+  #banner .b-title { font-size: 44px; font-weight: 900; letter-spacing: 6px; text-transform: uppercase; background: linear-gradient(180deg, #fff, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 rgba(0,0,0,.55)); }
+  #banner .b-sub { font-size: 17px; font-weight: 600; letter-spacing: 1px; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+  #toast { position: absolute; bottom: 24%; left: 0; right: 0; text-align: center; font-size: 21px; font-weight: 800; letter-spacing: 1px; color: var(--gold); text-shadow: 0 2px 0 rgba(0,0,0,.65); opacity: 0; transition: opacity .25s; }
+
+  #prompt { position: absolute; bottom: 15%; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; text-shadow: 0 2px 0 rgba(0,0,0,.7); }
+  #prompt .key { display: inline-block; background: #fff; color: #111; border-radius: 4px; padding: 0 8px; margin: 0 3px; font-weight: 900; box-shadow: 0 2px 0 rgba(0,0,0,.5); }
+
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; opacity: .9; }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 4px rgba(0,0,0,.8); }
+  #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+  #crosshair::after { left: 0; top: 10px; width: 22px; height: 2px; }
+
+  #vitals { position: absolute; left: 18px; bottom: 16px; width: 230px; }
+  .bar { height: 13px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.35); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+  .bar > div { height: 100%; transition: width .15s; }
+  #healthbar > div { background: linear-gradient(90deg, #ff4d6d, #ff758f); }
+  #armorbar > div { background: linear-gradient(90deg, #3a86ff, #6fb3ff); }
+  .bar-label { font-size: 10.5px; font-weight: 800; letter-spacing: 2px; opacity: .9; text-shadow: 0 1px 0 rgba(0,0,0,.6); }
+
+  #mapwrap { position: absolute; right: 18px; bottom: 16px; text-align: center; }
+  #minimap { width: 216px; height: 216px; border-radius: 50%; border: 3px solid rgba(255,255,255,.75); box-shadow: 0 4px 18px rgba(0,0,0,.5); background: #10304a; }
+  #speed { margin-top: 4px; font-size: 22px; font-weight: 800; text-shadow: 0 2px 0 rgba(0,0,0,.6); font-variant-numeric: tabular-nums; }
+  #speed small { font-size: 12px; font-weight: 700; opacity: .8; letter-spacing: 1px; }
+  #radio { position: absolute; left: 0; right: 0; bottom: 64px; text-align: center; font-size: 16px; font-weight: 800; letter-spacing: 3px; color: var(--cyan); text-shadow: 0 2px 0 rgba(0,0,0,.65); opacity: 0; transition: opacity .3s; }
+
+  /* ---------- Screens ---------- */
+  .screen { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #title { background: linear-gradient(180deg, rgba(11,8,26,.08) 55%, rgba(11,8,26,.55)); justify-content: flex-end; padding-bottom: 5.5%; }
+  #logo { font-size: 92px; font-weight: 900; letter-spacing: 4px; line-height: .95; text-transform: uppercase;
+    background: linear-gradient(180deg, #ffe259 8%, #ff7518 38%, #ff2e88 72%, #b721ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 4px 0 rgba(20,0,40,.65)) drop-shadow(0 0 26px rgba(255,46,136,.35)); }
+  #logo .thin { display: block; font-size: 30px; letter-spacing: 14px; font-weight: 800; background: linear-gradient(90deg, var(--cyan), #7dd3fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #tagline { margin-top: 10px; font-size: 16.5px; font-weight: 600; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,.8); }
+  #play { pointer-events: auto; margin-top: 26px; font-size: 24px; font-weight: 900; letter-spacing: 5px; color: #fff; background: linear-gradient(180deg, #ff2e88, #c2185b); border: 2px solid rgba(255,255,255,.65); border-radius: 10px; padding: 13px 58px; cursor: pointer; box-shadow: 0 6px 24px rgba(255,46,136,.45), inset 0 1px 0 rgba(255,255,255,.5); }
+  #play:hover { filter: brightness(1.12); }
+  #controls { margin-top: 22px; font-size: 13.5px; line-height: 1.75; color: rgba(255,255,255,.92); text-shadow: 0 1px 3px rgba(0,0,0,.85); background: rgba(8,10,24,.45); padding: 10px 22px; border-radius: 8px; backdrop-filter: blur(3px); }
+  #controls b { color: var(--gold); }
+  #title .credit { margin-top: 14px; font-size: 12px; letter-spacing: 2px; opacity: .75; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
+
+  #over { background: rgba(10, 0, 0, .38); z-index: 11; }
+  #over .big { font-size: 96px; font-weight: 900; letter-spacing: 22px; text-transform: uppercase; color: #d90429; text-shadow: 0 0 34px rgba(217,4,41,.6), 0 4px 0 rgba(0,0,0,.6); }
+  #over.busted { background: rgba(0, 8, 30, .42); }
+  #over.busted .big { color: #6fb3ff; text-shadow: 0 0 34px rgba(63,94,251,.65), 0 4px 0 rgba(0,0,0,.6); }
+  #over .sub { margin-top: 8px; font-size: 17px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,.8); }
+
+  #pause { background: rgba(5, 6, 18, .66); z-index: 11; }
+  #pause .big { font-size: 46px; font-weight: 900; letter-spacing: 10px; }
+  #pause .row { margin-top: 10px; font-size: 16px; opacity: .92; line-height: 1.9; }
+  #pause .row b { color: var(--gold); }
+
+  /* Read aloud, never shown: the status line screen readers announce. */
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Neon Shores: an open-world game in the city of Bahía Rosa. Drive, walk, take missions and outrun the police."></canvas>
+
+<div id="hud" class="hidden">
+  <div id="objective" class="hidden">
+    <div class="obj-title" id="obj-title">Mission</div>
+    <div class="obj-text" id="obj-text"></div>
+    <div class="obj-sub" id="obj-sub"></div>
+  </div>
+  <div id="topbar">
+    <div id="clock">18:24</div>
+    <div id="cash">$0</div>
+    <div id="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+    <div id="weapon">FISTS</div>
+  </div>
+  <div id="banner"><div class="b-title" id="banner-title"></div><div class="b-sub" id="banner-sub"></div></div>
+  <div id="toast"></div>
+  <div id="prompt"></div>
+  <div id="crosshair" class="hidden"></div>
+  <div id="vitals">
+    <div class="bar-label">HEALTH</div>
+    <div class="bar" id="healthbar"><div style="width:100%"></div></div>
+    <div class="bar-label" style="margin-top:5px">ARMOR</div>
+    <div class="bar" id="armorbar"><div style="width:0%"></div></div>
+  </div>
+  <div id="mapwrap">
+    <canvas id="minimap" width="216" height="216"></canvas>
+    <div id="speed">0 <small>KM/H</small></div>
+  </div>
+  <div id="radio"></div>
+</div>
+
+<div id="title" class="screen">
+  <div id="logo">Neon<span class="thin">S H O R E S</span></div>
+  <div id="tagline">Bahía Rosa, 1986. One city, five stars, zero brakes.</div>
+  <button id="play">▶ PLAY</button>
+  <div id="controls">
+    <b>W A S D</b> drive / walk &nbsp;•&nbsp; <b>Mouse</b> camera &nbsp;•&nbsp; <b>Click</b> shoot<br>
+    <b>F</b> enter / exit vehicle &nbsp;•&nbsp; <b>Space</b> handbrake &nbsp;•&nbsp; <b>Shift</b> sprint / boost<br>
+    <b>1–4</b> weapons &nbsp;•&nbsp; <b>R</b> radio &nbsp;•&nbsp; <b>M</b> missions &nbsp;•&nbsp; <b>Esc</b> pause
+  </div>
+  <div class="credit">AN ORIGINAL OPEN-WORLD GAME • EVERY ASSET MADE IN CODE</div>
+</div>
+
+<div id="over" class="screen hidden">
+  <div class="big" id="over-text">WASTED</div>
+  <div class="sub" id="over-sub"></div>
+</div>
+
+<div id="pause" class="screen hidden">
+  <div class="big">PAUSED</div>
+  <div class="row" id="pause-stats"></div>
+  <div class="row">Progress is saved automatically.<br><b>Esc</b> resume &nbsp;•&nbsp; <b>Enter</b> resume</div>
+</div>
+
+<p id="status" role="status" aria-live="polite"></p>
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
